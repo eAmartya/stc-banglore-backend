@@ -1,10 +1,19 @@
 const z = require("zod");
 
-const writeAdminBodySchema = z.object({
-  pincode: z.number(),
-  area: z.string()
+// const appealBodySchema = z.object({
+//   pincode: z.number(),
+//   area: z.string(),
+//   isNewPincode: z.string(),
+//   reqMadeBy: z.string()
+// })
+const appealBodySchema = z.object({
+  pincode: z.string(),
+  area: z.string(),
 })
 const searchZodSchema = z.number();
 
+const notesBodySchema = z.object({
+  note: z.string()
+})
 
-module.exports = { writeAdminBodySchema, searchZodSchema }
+module.exports = { appealBodySchema, searchZodSchema, notesBodySchema }

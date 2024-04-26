@@ -6,8 +6,10 @@ const cors = require("cors")
 const app = express();
 const port = 8000;
 const connectToDatabase = require('./db')
-const { writeAdminBodySchema, searchZodSchema } = require("./models/zodSchema");
+const { appealBodySchema, searchZodSchema, notesBodySchema } = require("./models/zodSchema");
 const PincodeCityMapping = require('./models/PincodeCityMapping');
+const AppealingModel = require('./models/Appealing');
+const NotesModel = require("./models/Notes")
 app.use(express.json());
 app.use(cors());
 
@@ -54,36 +56,161 @@ app.get("/search", (req, res) => {
     })
   }
 })
-
-app.post("/admin/write", (req, res) => {
-  const reqData = req.body;
-  let success = writeAdminBodySchema.safeParse(reqData);
-  if (!success.success) {
-    res.status(411).json({
-      msg: "wrong inputs, follow the schema which is pincode followed by the area name"
+app.get("/compile_specific", async (req, res) => {
+  let whatArea = req.query.area;
+  if (!whatArea) {
+    res.json({
+      data: [],
+      success: false,
+      msg: "no input"
     })
   } else {
-    const newPincode = new PincodeCityMapping({
-      pincode: reqData.pincode,
-      area: reqData.area
-    });
-    newPincode.save()
-      .then((savedPincode) => {
-        console.log("Pincode saved: ", savedPincode)
+    let data = await PincodeCityMapping.find({ area: whatArea });
+    console.log(data)
+    try {
+      if (!data[0]) {
         res.json({
-          data: savedPincode,
-          msg: "saved",
+          data: data,
+          success: false
         })
-      })
-      .catch((err) => {
-        console.log("Error saving user: ", err)
+      } else {
         res.json({
-          data: err,
-          msg: "Error saving",
+          data: data,
+          success: true,
         })
+      }
+    } catch (error) {
+      console.log("err:" + error)
+    }
+
+
+
+  }
+})
+app.get("/appeal/read", async (req, res) => {
+  try {
+    const result = await AppealingModel.find({})
+    // console.log(result)
+    if (!result) {
+      return res.json({
+        msg: "nothing to show",
+        success: true,
+        isEmpty: true
       })
+    } else {
+      return res.json({
+        msg: "found appeals",
+        data: result,
+        success: true,
+        isEmpty: false
+      })
+    }
+  } catch (error) {
+    return res.status(500).json({
+      msg: "internal server error",
+      success: false,
+      isEmpty: true
+    })
+  }
+})
+app.post("/appeal/write", async (req, res) => {
+  const reqData = req.body;
+  console.log(reqData)
+  if (!reqData.pincode || !reqData.area) {
+    return res.json({
+      msg: "invalid inputs",
+      success: false
+    })
+  }
+  let success = appealBodySchema.safeParse(reqData);
+  if (!success.success) {
+    return res.json({
+      msg: "wrong inputs, follow the schema which is pincode followed by the area name",
+      success: false
+    })
+  } else {
+    try {
+      const newData = new AppealingModel({
+        pincode: reqData.pincode,
+        area: reqData.area,
+      });
+      await newData.save()
+      return res.status(201).json({
+        msg: "appeal saved",
+        success: true
+      })
+    } catch {
+
+      return res.status(500).json({
+        msg: "internal server error cant save user rn",
+        success: false
+      })
+    }
   }
 
+})
+
+app.post("/notes/write", async (req, res) => {
+  const notesBody = req.body;
+  const success = notesBodySchema.safeParse(notesBody);
+
+  if (!success.success) {
+    return res.json({
+      msg: "invalid inputs",
+      success: false,
+      isEmpty: true
+    })
+  } else {
+    if (!notesBody.note) {
+      return res.json({
+        msg: "empty note",
+        success: false,
+        isEmpty: true
+      })
+    } else {
+      try {
+        const newNote = new NotesModel({
+          note: notesBody.note
+        })
+        await newNote.save()
+        return res.status(201).json({
+          msg: "note saved",
+          success: true
+        })
+      } catch {
+        return res.status(500).json({
+          msg: "internal server error cant save user rn",
+          success: false
+        })
+      }
+    }
+  }
+})
+app.get("/notes/read", async (req, res) => {
+  try {
+    const result = await NotesModel.find({})
+    // console.log(result)
+    if (!result) {
+      return res.json({
+        msg: "nothing to show",
+        success: true,
+        isEmpty: true
+      })
+    } else {
+      return res.json({
+        msg: "found notes",
+        data: result,
+        success: true,
+        isEmpty: false
+      })
+    }
+  } catch (error) {
+    return res.status(500).json({
+      msg: "internal server error",
+      success: false,
+      isEmpty: true
+    })
+  }
 })
 app.listen(port, () => {
   console.log(`listening on port ${port}`)

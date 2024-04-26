@@ -3,6 +3,7 @@ const mongoose = require("mongoose");
 
 function connectToDatabase() {
   return new Promise((resolve, reject) => {
+    // mongoose.connect(process.env.LOCAL_URI, { useNewUrlParser: true, useUnifiedTopology: true })
     mongoose.connect(process.env.MONGODB_URI, { useNewUrlParser: true, useUnifiedTopology: true })
       .then(() => {
         console.log(`Connected to DB`)
